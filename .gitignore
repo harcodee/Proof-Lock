@@ -1,0 +1,10 @@
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+.env
+digital_identity.db
+backend/digital_identity.db
+backend/uploads/
+uploads/
+.DS_Store
