@@ -10,20 +10,17 @@ router = APIRouter()
 
 @router.post("/register")
 async def register(
+    user_id: int = Form(...),
     name: str = Form(...),
     age: int = Form(...),
     id_number: str = Form(...),
     image: Optional[UploadFile] = File(None),
+    video: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db),
 ):
     try:
-        result = await register_identity(name, age, id_number, image, db)
-        return {
-            "user_id": result["user_id"],
-            "name": result["name"],
-            "fraud_score": result["fraud_score"],
-            "message": "Identity registered and verified",
-        }
+        result = await register_identity(user_id, name, age, id_number, image, video, db)
+        return result
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:

@@ -6,3 +6,7 @@ opencv-python-headless
 numpy
 pydantic
 aiofiles
+slowapi
+python-jose
+alembic
+pillow

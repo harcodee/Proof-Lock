@@ -1,73 +1,52 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ShieldAlert, Info, CheckCircle2 } from 'lucide-react';
 
 const ICONS = {
-  success: (
-    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-    </svg>
-  ),
-  error: (
-    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-    </svg>
-  ),
-  info: (
-    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-  ),
+  success: <CheckCircle2 className="w-5 h-5" />,
+  error: <ShieldAlert className="w-5 h-5" />,
+  info: <Info className="w-5 h-5" />,
 };
 
 const TYPE_STYLES = {
-  success: 'bg-emerald-600 text-white shadow-emerald-200',
-  error: 'bg-red-600 text-white shadow-red-200',
-  info: 'bg-blue-600 text-white shadow-blue-200',
+  success: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.2)]',
+  error: 'bg-rose-500/10 border-rose-500/20 text-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.2)]',
+  info: 'bg-blue-500/10 border-blue-500/20 text-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.2)]',
 };
 
 export default function Toast({ toasts, removeToast }) {
   return (
-    <div className="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-sm">
-      {toasts.map((toast) => (
-        <ToastItem key={toast.id} toast={toast} onRemove={removeToast} />
-      ))}
+    <div className="fixed top-6 right-6 z-50 flex flex-col gap-3 min-w-[300px] max-w-sm">
+      <AnimatePresence>
+        {toasts.map((toast) => (
+          <ToastItem key={toast.id} toast={toast} onRemove={removeToast} />
+        ))}
+      </AnimatePresence>
     </div>
   );
 }
 
 function ToastItem({ toast, onRemove }) {
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    // Animate in
-    const showTimer = setTimeout(() => setVisible(true), 10);
-    // Auto-dismiss
-    const hideTimer = setTimeout(() => {
-      setVisible(false);
-      setTimeout(() => onRemove(toast.id), 350);
-    }, 3000);
-
-    return () => {
-      clearTimeout(showTimer);
-      clearTimeout(hideTimer);
-    };
+  React.useEffect(() => {
+    const timer = setTimeout(() => onRemove(toast.id), 4000);
+    return () => clearTimeout(timer);
   }, [toast.id, onRemove]);
 
   return (
-    <div
+    <motion.div
+      layout
+      initial={{ opacity: 0, x: 50, scale: 0.95 }}
+      animate={{ opacity: 1, x: 0, scale: 1 }}
+      exit={{ opacity: 0, x: 20, scale: 0.95 }}
+      whileHover={{ scale: 1.02 }}
+      onClick={() => onRemove(toast.id)}
       className={`
-        flex items-start gap-3 px-4 py-3 rounded-xl shadow-lg text-sm font-medium
-        transition-all duration-350 cursor-pointer select-none
+        flex items-start gap-3 px-4 py-3 rounded-xl border backdrop-blur-md cursor-pointer
         ${TYPE_STYLES[toast.type] || TYPE_STYLES.info}
-        ${visible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-12'}
       `}
-      style={{ transitionProperty: 'opacity, transform' }}
-      onClick={() => {
-        setVisible(false);
-        setTimeout(() => onRemove(toast.id), 350);
-      }}
     >
       <span className="mt-0.5 flex-shrink-0">{ICONS[toast.type] || ICONS.info}</span>
-      <span className="leading-snug">{toast.message}</span>
-    </div>
+      <span className="leading-snug text-sm font-medium">{toast.message}</span>
+    </motion.div>
   );
 }

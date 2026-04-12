@@ -16,9 +16,7 @@ eligibility (e.g., `age > 18`) to any service — **without revealing actual per
 
 ```bash
 cd backend
-pip install -r requirements.txt
-uvicorn main:app --reload --port 8000
-```
+pip install -r requirements.tx```
 
 API will be live at: `http://localhost:8000`  
 Interactive docs: `http://localhost:8000/docs`

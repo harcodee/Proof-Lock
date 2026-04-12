@@ -1,131 +1,156 @@
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { QRCodeSVG } from 'qrcode.react';
+import { ShieldCheck, Copy, Code, Lock } from 'lucide-react';
 import FraudBadge from './FraudBadge';
 
-export default function CredentialCard({ credential, signature, signatureShort }) {
+export default function CredentialCard({ credential, signature, did, status, isFullView = false }) {
   const [copied, setCopied] = useState(false);
   const [showJson, setShowJson] = useState(false);
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(signature).then(() => {
+  const handleCopy = (text) => {
+    navigator.clipboard.writeText(text).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
   };
 
   const formatDate = (iso) => {
+    if (!iso) return 'N/A';
     try {
       return new Date(iso).toLocaleString('en-US', {
         year: 'numeric', month: 'short', day: '2-digit',
-        hour: '2-digit', minute: '2-digit', timeZoneName: 'short',
+        hour: '2-digit', minute: '2-digit'
       });
     } catch {
       return iso;
     }
   };
 
-  const highlightJson = (obj) => {
-    const json = JSON.stringify(obj, null, 2);
-    return json
-      .replace(/(".*?")(\s*:\s*)/g, '<span style="color:#93C5FD">$1</span>$2')
-      .replace(/:\s*(".*?")/g, ': <span style="color:#6EE7B7">$1</span>')
-      .replace(/:\s*(true|false)/g, ': <span style="color:#FCA5A5">$1</span>')
-      .replace(/:\s*(\d+)/g, ': <span style="color:#FDE68A">$1</span>');
-  };
-
   if (!credential) return null;
 
   return (
-    <div className="animate-fade-in">
-      {/* Visual credential card */}
-      <div className="relative bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 rounded-2xl p-6 text-white overflow-hidden shadow-2xl glow-blue mb-4">
-        {/* Background decoration */}
-        <div className="absolute top-0 right-0 w-48 h-48 bg-blue-500 opacity-5 rounded-full -translate-y-16 translate-x-16" />
-        <div className="absolute bottom-0 left-0 w-32 h-32 bg-violet-500 opacity-5 rounded-full translate-y-8 -translate-x-8" />
-
-        {/* Header */}
-        <div className="flex items-center gap-2 mb-5">
-          <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center text-base">🔐</div>
-          <div>
-            <p className="text-xs text-blue-300 font-medium uppercase tracking-widest">Verifiable Credential</p>
-            <p className="text-sm font-semibold text-white">{credential.issuer}</p>
+    <motion.div layout className="relative">
+      {/* Front of Card */}
+      <div className="relative glass-card overflow-hidden shadow-[0_20px_50px_rgba(8,112,184,0.15)] glow-blue">
+        {/* Holographic background elements */}
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-900/30 via-slate-900/90 to-blue-800/30 -z-10" />
+        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl -translate-y-24 translate-x-12" />
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-blue-600/10 rounded-full blur-3xl translate-y-16 -translate-x-12" />
+        
+        {/* Top Header */}
+        <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-500/20 border border-blue-400/30 rounded-xl flex items-center justify-center text-blue-400">
+              <ShieldCheck className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-white tracking-wide">VERIFIABLE CREDENTIAL</h3>
+              <p className="text-[10px] text-zinc-400 font-mono tracking-widest">{credential.issuer}</p>
+            </div>
           </div>
-          <div className="ml-auto">
-            <span className="text-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full font-medium">
-              ✓ VERIFIED
-            </span>
-          </div>
-        </div>
-
-        {/* Divider */}
-        <div className="border-t border-white/10 mb-5" />
-
-        {/* Fields grid */}
-        <div className="grid grid-cols-2 gap-4 mb-5">
-          <div>
-            <p className="text-xs text-slate-400 uppercase tracking-wider mb-0.5">Full Name</p>
-            <p className="text-white font-semibold">{credential.name}</p>
-          </div>
-          <div>
-            <p className="text-xs text-slate-400 uppercase tracking-wider mb-0.5">Verification Status</p>
-            <p className="text-emerald-400 font-semibold">✓ TRUE</p>
-          </div>
-          <div>
-            <p className="text-xs text-slate-400 uppercase tracking-wider mb-0.5">Fraud Score</p>
-            <FraudBadge score={credential.fraud_score} />
-          </div>
-          <div>
-            <p className="text-xs text-slate-400 uppercase tracking-wider mb-0.5">Credential Type</p>
-            <p className="text-blue-300 text-xs font-medium">{credential.credential_type}</p>
-          </div>
-          <div className="col-span-2">
-            <p className="text-xs text-slate-400 uppercase tracking-wider mb-0.5">Issued At</p>
-            <p className="text-white text-sm">{formatDate(credential.issued_at)}</p>
-          </div>
-        </div>
-
-        {/* Divider */}
-        <div className="border-t border-white/10 mb-4" />
-
-        {/* Signature */}
-        <div className="flex items-center gap-2">
-          <div className="flex-1 min-w-0">
-            <p className="text-xs text-slate-400 uppercase tracking-wider mb-0.5">SHA-256 Signature</p>
-            <p className="text-blue-300 font-mono text-xs truncate">{signatureShort}</p>
-          </div>
-          <button
-            onClick={handleCopy}
-            className="flex-shrink-0 text-xs bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg transition-all duration-200 font-medium border border-white/20"
+          <div className={`px-2.5 py-1 rounded-full text-[10px] font-bold tracking-widest border
+            ${status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 
+              status === 'REVOKED' ? 'bg-rose-500/10 text-rose-400 border-rose-500/30' : 
+              'bg-amber-500/10 text-amber-400 border-amber-500/30'}`}
           >
-            {copied ? '✓ Copied' : 'Copy Full'}
-          </button>
+            {status}
+          </div>
+        </div>
+
+        {/* Card Body */}
+        <div className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-6 items-center">
+            
+            <div className="space-y-4">
+              <div>
+                <p className="font-sans text-[11px] tracking-[1.5px] uppercase text-white/50 mb-1">Subject DID</p>
+                <div 
+                  className="flex items-center gap-2 text-xs font-mono text-blue-300 bg-black/40 px-3 py-1.5 rounded-lg border border-white/5 cursor-pointer hover:bg-black/60 transition group selection:bg-blue-500/30"
+                  onClick={() => handleCopy(did)}
+                >
+                  <span className="truncate">{did}</span>
+                  <Copy className="w-3.5 h-3.5 opacity-50 group-hover:opacity-100" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="font-sans text-[11px] tracking-[1.5px] uppercase text-white/50 mb-1">Holder Name</p>
+                  <p className="text-[14px] font-sans font-medium text-[#E6EAF2]">{credential.name}</p>
+                </div>
+                <div>
+                  <p className="font-sans text-[11px] tracking-[1.5px] uppercase text-white/50 mb-1">Trust Tier</p>
+                  <FraudBadge score={credential.trust_tier || credential.fraud_score} />
+                </div>
+                <div>
+                  <p className="font-sans text-[11px] tracking-[1.5px] uppercase text-white/50 mb-1">Issued</p>
+                  <p className="text-[12px] text-zinc-300 font-mono">{formatDate(credential.issued_at)}</p>
+                </div>
+                <div>
+                  <p className="font-sans text-[11px] tracking-[1.5px] uppercase text-white/50 mb-1">Expires</p>
+                  <p className="text-[12px] text-amber-400/80 font-mono">{formatDate(credential.expires_at)}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* QR Code Segment */}
+            {isFullView && (
+              <div className="bg-white p-2 rounded-xl shadow-lg border-2 border-white/20 self-start hidden md:block">
+                <QRCodeSVG 
+                  value={JSON.stringify({ did, signature })} 
+                  size={100}
+                  bgColor={"#ffffff"}
+                  fgColor={"#000000"}
+                  level={"Q"}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="bg-black/50 px-6 py-3 flex items-center justify-between border-t border-white/5">
+          <div className="flex items-center gap-2 text-[10px] text-zinc-500 font-mono">
+            <Lock className="w-3 h-3 text-emerald-400/70" />
+            <span>SHA-256 Sig: {signature.substring(0,24)}...</span>
+          </div>
+          {copied && <span className="text-[10px] text-emerald-400 font-mono">✓ COPIED</span>}
         </div>
       </div>
 
-      {/* JSON Viewer Toggle */}
-      <button
-        onClick={() => setShowJson((p) => !p)}
-        className="w-full text-left px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium rounded-xl flex items-center justify-between transition-all duration-200 mb-2"
-      >
-        <span>View Raw JSON</span>
-        <span className={`transition-transform duration-200 ${showJson ? 'rotate-180' : ''}`}>▼</span>
-      </button>
-
-      {showJson && (
-        <div className="json-viewer animate-fade-in">
-          <pre
-            dangerouslySetInnerHTML={{
-              __html: highlightJson({ credential, signature }),
-            }}
-          />
+      {isFullView && (
+        <div className="mt-4">
+          <button 
+            onClick={() => setShowJson(!showJson)}
+            className="flex items-center gap-2 text-xs font-mono text-zinc-400 hover:text-white transition w-full p-2 bg-white/5 rounded-lg border border-white/10 justify-center"
+          >
+            <Code className="w-4 h-4" /> {showJson ? 'HIDE RAW DATA' : 'VIEW RAW DATA'}
+          </button>
+          
+          <AnimatePresence>
+            {showJson && (
+              <motion.div 
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden mt-2"
+              >
+                <div className="p-4 bg-black/60 rounded-xl border border-white/5 font-mono text-xs overflow-auto max-h-64 shadow-[inset_0_0_20px_rgba(37,99,235,0.05)]">
+                  <pre className="text-zinc-300">
+                    <span className="text-pink-400">{`{`}</span>{`\n`}
+                    <span className="text-blue-300">  "did"</span>: <span className="text-emerald-300">"{did}"</span>,{`\n`}
+                    <span className="text-blue-300">  "status"</span>: <span className="text-emerald-300">"{status}"</span>,{`\n`}
+                    <span className="text-blue-300">  "credential"</span>: {JSON.stringify(credential, null, 4).replace(/\n/g, '\n  ').replace(/"([^"]+)":/g, '<span class="text-blue-300">"$1"</span>:').replace(/: "([^"]+)"/g, ': <span class="text-emerald-300">"$1"</span>').replace(/: true/gi, ': <span class="text-amber-300">true</span>').replace(/: false/gi, ': <span class="text-rose-300">false</span>').replace(/: ([0-9]+)/g, ': <span class="text-sky-300">$1</span>')},{`\n`}
+                    <span className="text-blue-300">  "signature"</span>: <span className="text-emerald-300">"{signature}"</span>{`\n`}
+                    <span className="text-pink-400">{`}`}</span>
+                  </pre>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       )}
-
-      {/* Privacy note */}
-      <p className="mt-3 text-xs text-slate-500 flex items-start gap-1.5">
-        <span className="text-blue-500 mt-0.5">🔒</span>
-        Your age and ID number are embedded in this credential but will never be shared directly.
-        Only zero-knowledge proofs are transmitted to service providers.
-      </p>
-    </div>
+    </motion.div>
   );
 }

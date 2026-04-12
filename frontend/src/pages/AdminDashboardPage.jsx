@@ -1,0 +1,298 @@
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  LayoutDashboard, 
+  Users, 
+  ShieldCheck, 
+  BrainCircuit, 
+  AlertTriangle, 
+  LineChart, 
+  FileText,
+  LogOut,
+  Search,
+  CheckCircle2,
+  XCircle,
+  Flag,
+  Activity
+} from 'lucide-react';
+import { useStore } from '../store';
+import FraudBadge from '../components/FraudBadge';
+
+const TABS = [
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'users', label: 'Users', icon: Users },
+  { id: 'verifications', label: 'Verifications', icon: ShieldCheck },
+];
+
+// Mock Data
+const MOCK_USERS = [
+  { id: 'USR-001234', username: 'johndoe89', status: 'VERIFIED', lastActivity: '2 mins ago', risk: 15 },
+  { id: 'USR-001235', username: 'alice_smith', status: 'PENDING', lastActivity: '1 hour ago', risk: 45 },
+  { id: 'USR-001236', username: 'mike.w', status: 'VERIFIED', lastActivity: '5 hours ago', risk: 5 },
+  { id: 'USR-001237', username: 'suspicious_99', status: 'FLAGGED', lastActivity: '1 day ago', risk: 85 },
+];
+
+const MOCK_VERIFICATIONS = [
+  { id: 'VER-9921', user: 'johndoe89', matchScore: 98.5, status: 'APPROVED', time: '10:45 AM' },
+  { id: 'VER-9922', user: 'alice_smith', matchScore: 65.2, status: 'PENDING', time: '11:20 AM' },
+  { id: 'VER-9923', user: 'suspicious_99', matchScore: 23.1, status: 'REJECTED', time: 'Yesterday' },
+];
+
+export default function AdminDashboardPage() {
+  const { setCurrentStep } = useStore();
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [selectedUser, setSelectedUser] = useState(null);
+
+  const [dashboardData, setDashboardData] = useState({ total_users: 0, total_verifications: 0, success_rate: 0, active_alerts: 0 });
+  const [users, setUsers] = useState(MOCK_USERS);
+  const [verifications, setVerifications] = useState(MOCK_VERIFICATIONS);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const dRes = await fetch('http://localhost:8000/api/admin/dashboard');
+        if (dRes.ok) setDashboardData(await dRes.json());
+        
+        const uRes = await fetch('http://localhost:8000/api/admin/users');
+        if (uRes.ok) setUsers(await uRes.json());
+        
+        const vRes = await fetch('http://localhost:8000/api/admin/verifications');
+        if (vRes.ok) setVerifications(await vRes.json());
+      } catch (e) {
+        console.error("Failed to fetch admin data", e);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const handleLogout = () => {
+    setCurrentStep(1);
+  };
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'dashboard':
+        return (
+          <div className="space-y-6 animate-fade-in z-10 relative">
+            <h2 className="font-serif text-[24px] font-medium text-[#E6EAF2]">Platform Overview</h2>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <StatCard title="Total Users" value={dashboardData.total_users.toLocaleString()} change="+12%" />
+              <StatCard title="Verifications" value={dashboardData.total_verifications.toLocaleString()} change="+5%" />
+              <StatCard title="Success Rate" value={`${dashboardData.success_rate}%`} change="+1.2%" />
+              <StatCard title="Active Alerts" value={dashboardData.active_alerts} change="-4" accent="rose" />
+            </div>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+              <div className="glass-card p-6">
+                 <h3 className="font-sans text-[11px] font-bold tracking-[1.5px] uppercase text-white/50 mb-4">Recent Activity</h3>
+                 <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2">
+                    {verifications.slice(0,5).map(v => (
+                      <div key={v.id} className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-semibold text-white">{v.user}</span>
+                          <span className="text-xs text-zinc-500 font-mono">{v.id}</span>
+                        </div>
+                        <div className={`px-2 py-1 rounded text-[10px] font-bold tracking-widest ${v.status === 'APPROVED' ? 'bg-emerald-500/10 text-emerald-400' : v.status === 'REJECTED' ? 'bg-rose-500/10 text-rose-400' : 'bg-amber-500/10 text-amber-400'}`}>
+                          {v.status}
+                        </div>
+                      </div>
+                    ))}
+                 </div>
+              </div>
+              <div className="glass-card p-6">
+                 <h3 className="font-sans text-[11px] font-bold tracking-[1.5px] uppercase text-white/50 mb-4">System Stress</h3>
+                 <div className="h-48 flex items-end gap-2">
+                    {[40, 60, 45, 80, 55, 90, 65, 50, 75, 40].map((h, i) => (
+                      <div key={i} className="flex-1 bg-blue-500/20 rounded-t-sm hover:bg-blue-400/40 transition-colors" style={{ height: `${h}%` }}></div>
+                    ))}
+                 </div>
+              </div>
+            </div>
+          </div>
+        );
+      case 'users':
+        return (
+          <div className="space-y-6 animate-fade-in z-10 relative">
+            <div className="flex items-center justify-between">
+              <h2 className="font-serif text-[24px] font-medium text-[#E6EAF2]">User Management</h2>
+              <div className="relative">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+                <input type="text" placeholder="Search users..." className="input-field pl-9 py-2 text-sm w-64" />
+              </div>
+            </div>
+            
+            <div className="glass-card overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm text-zinc-400">
+                  <thead className="bg-black/40 text-[11px] font-sans tracking-[1.5px] uppercase text-white/50 border-b border-white/10">
+                    <tr>
+                      <th className="px-6 py-4 font-medium">User ID</th>
+                      <th className="px-6 py-4 font-medium">Username</th>
+                      <th className="px-6 py-4 font-medium">Status</th>
+                      <th className="px-6 py-4 font-medium">Last Activity</th>
+                      <th className="px-6 py-4 font-medium">Risk Score</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {users.map(user => (
+                      <tr key={user.id} className="hover:bg-white/5 cursor-pointer transition-colors" onClick={() => setSelectedUser(user)}>
+                        <td className="px-6 py-4 font-mono">{user.id}</td>
+                        <td className="px-6 py-4 text-white font-medium">{user.username}</td>
+                        <td className="px-6 py-4">
+                          <span className={`px-2 py-1 rounded text-[10px] font-bold tracking-widest border ${
+                            user.status === 'VERIFIED' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 
+                            user.status === 'FLAGGED' ? 'bg-rose-500/10 text-rose-400 border-rose-500/30' : 
+                            'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                          }`}>
+                            {user.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">{user.lastActivity}</td>
+                        <td className="px-6 py-4"><FraudBadge score={user.risk} /></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        );
+      case 'verifications':
+        return (
+          <div className="space-y-6 animate-fade-in z-10 relative">
+            <h2 className="font-serif text-[24px] font-medium text-[#E6EAF2]">Verification Queue</h2>
+            
+            <div className="space-y-4">
+               {verifications.map(ver => (
+                 <div key={ver.id} className="glass-card p-4 flex items-center justify-between group">
+                    <div className="flex items-center gap-4">
+                       <div className="w-12 h-12 bg-black/40 rounded-xl border border-white/10 flex items-center justify-center">
+                          <ShieldCheck className={`w-6 h-6 ${ver.matchScore > 80 ? 'text-emerald-400' : ver.matchScore > 50 ? 'text-amber-400' : 'text-rose-400'}`} />
+                       </div>
+                       <div>
+                         <p className="text-white font-medium">{ver.user}</p>
+                         <p className="text-xs text-zinc-500 font-mono mt-1">{ver.id} • {ver.time}</p>
+                       </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-6">
+                       <div className="text-right hidden md:block">
+                         <p className="font-sans text-[10px] tracking-[1.5px] uppercase text-white/50">Face Match</p>
+                         <p className={`font-mono font-bold ${ver.matchScore > 80 ? 'text-emerald-400' : ver.matchScore > 50 ? 'text-amber-400' : 'text-rose-400'}`}>{ver.matchScore}%</p>
+                       </div>
+                       
+                       <div className="flex gap-2">
+                          <button className="btn-ghost !p-2 text-emerald-400 hover:bg-emerald-500/20" title="Approve"><CheckCircle2 className="w-4 h-4" /></button>
+                          <button className="btn-ghost !p-2 text-rose-400 hover:bg-rose-500/20" title="Reject"><XCircle className="w-4 h-4" /></button>
+                          <button className="btn-ghost !p-2 text-amber-400 hover:bg-amber-500/20" title="Flag"><Flag className="w-4 h-4" /></button>
+                       </div>
+                    </div>
+                 </div>
+               ))}
+            </div>
+          </div>
+        );
+
+      default: return null;
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex bg-background max-w-7xl mx-auto z-10 relative">
+      {/* Sidebar Nav */}
+      <div className="w-64 border-r border-white/5 bg-zinc-950/50 backdrop-blur-xl p-6 flex flex-col sticky top-0 h-screen z-20">
+        <div className="mb-8 flex items-center gap-2">
+          <div className="w-8 h-8 bg-blue-500/20 rounded flex items-center justify-center text-blue-400 border border-blue-500/30">
+            <ShieldCheck className="w-4 h-4" />
+          </div>
+          <h1 className="font-serif text-[20px] font-medium tracking-tight text-[#E6EAF2]">Admin Panel</h1>
+        </div>
+
+        <nav className="flex-1 space-y-1">
+          {TABS.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all text-left ${
+                activeTab === tab.id 
+                  ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.1)]' 
+                  : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-200'
+              }`}
+            >
+              <tab.icon className="w-4 h-4" />
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+
+        <div className="mt-auto pt-6 border-t border-white/5">
+          <button 
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-rose-400 hover:bg-rose-500/10 transition-all text-left"
+          >
+            <LogOut className="w-4 h-4" /> Sign Out
+          </button>
+        </div>
+      </div>
+
+      {/* Main Content Area */}
+      <div className="flex-1 p-8 overflow-y-auto z-10">
+        {renderContent()}
+      </div>
+      
+      {/* User Detail Modal */}
+      <AnimatePresence>
+        {selectedUser && (
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+          >
+            <motion.div 
+              initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }}
+              className="glass-card w-full max-w-md p-6 relative"
+            >
+              <button 
+                onClick={() => setSelectedUser(null)}
+                className="absolute top-4 right-4 text-zinc-500 hover:text-white"
+              >
+                <XCircle className="w-5 h-5" />
+              </button>
+              <h3 className="font-serif text-[24px] font-medium text-[#E6EAF2] mb-4">User Details</h3>
+              <div className="space-y-4 font-mono text-sm">
+                <div className="flex justify-between border-b border-white/5 pb-2">
+                  <span className="text-zinc-500 font-sans text-xs uppercase tracking-widest">Username</span>
+                  <span className="text-white">{selectedUser.username}</span>
+                </div>
+                <div className="flex justify-between border-b border-white/5 pb-2">
+                  <span className="text-zinc-500 font-sans text-xs uppercase tracking-widest">ID</span>
+                  <span className="text-blue-400">{selectedUser.id}</span>
+                </div>
+                <div className="flex justify-between border-b border-white/5 pb-2">
+                  <span className="text-zinc-500 font-sans text-xs uppercase tracking-widest">Status</span>
+                  <span>{selectedUser.status}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-zinc-500 font-sans text-xs uppercase tracking-widest">Risk</span>
+                  <span><FraudBadge score={selectedUser.risk} /></span>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function StatCard({ title, value, change, accent = 'blue' }) {
+  const isPositive = change.startsWith('+');
+  return (
+    <div className="glass-card p-5 border-t-2" style={{ borderTopColor: accent === 'rose' ? '#f43f5e' : '#3b82f6' }}>
+      <h3 className="font-sans text-[11px] font-bold tracking-[1.5px] uppercase text-white/50 mb-2">{title}</h3>
+      <div className="flex items-end gap-3">
+        <span className="text-2xl font-bold text-white tracking-tight">{value}</span>
+        <span className={`text-xs mb-1 font-mono ${isPositive ? 'text-emerald-400' : 'text-rose-400'}`}>{change}</span>
+      </div>
+    </div>
+  );
+}
