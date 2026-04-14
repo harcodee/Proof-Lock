@@ -32,7 +32,7 @@ const PORT = process.env.PORT || 3000;
 // CORS — allow frontend (port 5173) same as original FastAPI config
 app.use(
   cors({
-    origin: "*",
+    origin: process.env.FRONTEND_URL || "*",
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["*"],
     credentials: true,
