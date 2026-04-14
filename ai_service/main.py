@@ -45,6 +45,14 @@ def download_to_tmp(url: str, suffix: str = ".jpg") -> str:
     return tmp_path
 
 
+@app.get("/")
+def root():
+    return {
+        "service": "Proof-Lock AI Microservice",
+        "status": "online",
+        "message": "This is an internal microservice. It does not serve frontend API routes. Please use the Node.js backend for the frontend API."
+    }
+
 @app.get("/health")
 def health():
     return {"status": "ok", "service": "ai-microservice"}
