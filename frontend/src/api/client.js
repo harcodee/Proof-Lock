@@ -1,7 +1,13 @@
 import axios from 'axios';
 
+// Ensure the Base URL always ends with /api since the backend routes are bound to /api/*
+let baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+if (!baseURL.endsWith('/api') && !baseURL.endsWith('/api/')) {
+  baseURL = baseURL.replace(/\/+$/, '') + '/api';
+}
+
 const API = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
+  baseURL,
   timeout: 15000,
 });
 
