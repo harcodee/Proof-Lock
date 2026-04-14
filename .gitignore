@@ -8,3 +8,10 @@ backend/digital_identity.db
 backend/uploads/
 uploads/
 .DS_Store
+# SQLite files (migrated to Supabase)
+*.db
+*.db-shm
+*.db-wal
+# Temp upload dirs
+node_backend/tmp_uploads/
+ai_service/uploads/

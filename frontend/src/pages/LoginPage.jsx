@@ -66,7 +66,7 @@ export default function LoginPage() {
         >
 
           <h1 className="font-serif text-[36px] md:text-[48px] font-medium leading-[1.1] tracking-[-0.3px] text-[#E6EAF2] mb-4">
-            Identity Portal
+            Proof Lock
           </h1>
           <p className="text-zinc-400 max-w-md mx-auto text-sm md:text-base">
             Login to access your centralized identity ecosystem.

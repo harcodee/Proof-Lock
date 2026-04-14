@@ -48,15 +48,16 @@ export default function AdminDashboardPage() {
   const [verifications, setVerifications] = useState(MOCK_VERIFICATIONS);
 
   useEffect(() => {
+    const BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api');
     const fetchData = async () => {
       try {
-        const dRes = await fetch('http://localhost:8000/api/admin/dashboard');
+        const dRes = await fetch(`${BASE}/admin/dashboard`);
         if (dRes.ok) setDashboardData(await dRes.json());
         
-        const uRes = await fetch('http://localhost:8000/api/admin/users');
+        const uRes = await fetch(`${BASE}/admin/users`);
         if (uRes.ok) setUsers(await uRes.json());
         
-        const vRes = await fetch('http://localhost:8000/api/admin/verifications');
+        const vRes = await fetch(`${BASE}/admin/verifications`);
         if (vRes.ok) setVerifications(await vRes.json());
       } catch (e) {
         console.error("Failed to fetch admin data", e);
@@ -100,13 +101,10 @@ export default function AdminDashboardPage() {
                  </div>
               </div>
               <div className="glass-card p-6">
-                 <h3 className="font-sans text-[11px] font-bold tracking-[1.5px] uppercase text-white/50 mb-4">System Stress</h3>
-                 <div className="h-48 flex items-end gap-2">
-                    {[40, 60, 45, 80, 55, 90, 65, 50, 75, 40].map((h, i) => (
-                      <div key={i} className="flex-1 bg-blue-500/20 rounded-t-sm hover:bg-blue-400/40 transition-colors" style={{ height: `${h}%` }}></div>
-                    ))}
-                 </div>
-              </div>
+                 <h3 className="font-sans text-[11px] font-bold tracking-[1.5px] uppercase text-white/50 mb-2">Trust Score Distribution</h3>
+                 <p className="text-[10px] text-zinc-600 mb-4">Composite trust score per registered user</p>
+                 <TrustBarChart users={users} />
+               </div>
             </div>
           </div>
         );
@@ -292,6 +290,112 @@ function StatCard({ title, value, change, accent = 'blue' }) {
       <div className="flex items-end gap-3">
         <span className="text-2xl font-bold text-white tracking-tight">{value}</span>
         <span className={`text-xs mb-1 font-mono ${isPositive ? 'text-emerald-400' : 'text-rose-400'}`}>{change}</span>
+      </div>
+    </div>
+  );
+}
+
+function TrustBarChart({ users }) {
+  const [hovered, setHovered] = useState(null);
+  const CHART_H = 160; // px — matches h-44 minus label row
+
+  const getBarStyle = (score) => {
+    if (score >= 70) return { bg: 'rgba(52,211,153,0.25)', hover: 'rgba(52,211,153,0.5)', text: '#34d399', label: 'HIGH' };
+    if (score >= 40) return { bg: 'rgba(251,191,36,0.2)',  hover: 'rgba(251,191,36,0.45)', text: '#fbbf24', label: 'MED'  };
+    return           { bg: 'rgba(248,113,113,0.2)',  hover: 'rgba(248,113,113,0.45)', text: '#f87171', label: 'LOW'  };
+  };
+
+  if (!users || users.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center text-zinc-600 gap-2" style={{ height: CHART_H + 40 }}>
+        <Activity className="w-8 h-8 opacity-30" />
+        <p className="text-xs">No user data yet</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative select-none">
+      {/* Grid lines */}
+      <div className="relative" style={{ height: CHART_H }}>
+        {[25, 50, 75, 100].map(pct => (
+          <div
+            key={pct}
+            className="absolute left-0 right-0 border-t border-white/5 flex items-start"
+            style={{ bottom: `${pct}%` }}
+          >
+            <span className="text-[8px] text-zinc-700 font-mono leading-none">{pct}</span>
+          </div>
+        ))}
+
+        {/* Bars */}
+        <div className="absolute inset-0 flex gap-2 items-end px-1">
+          {users.map((user, i) => {
+            // composite_score is 0-1 (fraction), convert to 0-100
+            const score = user.risk > 1 ? user.risk : user.risk * 100;
+            const clampedScore = Math.min(100, Math.max(0, score));
+            const barPx = Math.max(4, (clampedScore / 100) * CHART_H);
+            const style = getBarStyle(clampedScore);
+            const isHov = hovered === i;
+
+            return (
+              <div
+                key={user.id || i}
+                className="flex-1 flex flex-col items-center cursor-pointer relative"
+                onMouseEnter={() => setHovered(i)}
+                onMouseLeave={() => setHovered(null)}
+              >
+                {/* Tooltip */}
+                {isHov && (
+                  <div className="absolute z-20 bg-zinc-900 border border-white/10 rounded-lg px-3 py-1.5 text-center whitespace-nowrap shadow-xl"
+                    style={{ bottom: barPx + 8, left: '50%', transform: 'translateX(-50%)' }}
+                  >
+                    <p className="text-[10px] text-white font-mono font-bold">{clampedScore.toFixed(1)}%</p>
+                    <p className="text-[9px] uppercase tracking-wider" style={{ color: style.text }}>{style.label}</p>
+                  </div>
+                )}
+
+                {/* Bar */}
+                <div
+                  className="w-full rounded-t-md transition-all duration-300"
+                  style={{
+                    height: barPx,
+                    background: isHov ? style.hover : style.bg,
+                    border: `1px solid ${style.text}44`,
+                    boxShadow: isHov ? `0 0 14px ${style.text}50` : 'none',
+                  }}
+                />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Username labels */}
+      <div className="flex gap-2 px-1 mt-1">
+        {users.map((user, i) => {
+          const score = user.risk > 1 ? user.risk : user.risk * 100;
+          const style = getBarStyle(Math.min(100, Math.max(0, score)));
+          return (
+            <p
+              key={user.id || i}
+              className="flex-1 text-[8px] font-mono truncate text-center transition-colors"
+              style={{ color: hovered === i ? style.text : '#52525b' }}
+            >
+              {(user.username || 'usr').slice(0, 8)}
+            </p>
+          );
+        })}
+      </div>
+
+      {/* Legend */}
+      <div className="flex gap-4 mt-3 justify-end">
+        {[{ c: '#34d399', l: 'High (≥70)' }, { c: '#fbbf24', l: 'Med (40–69)' }, { c: '#f87171', l: 'Low (<40)' }].map(({ c, l }) => (
+          <div key={l} className="flex items-center gap-1.5">
+            <div className="w-2.5 h-2.5 rounded-sm" style={{ background: c + '55', border: `1px solid ${c}66` }} />
+            <span className="text-[9px] text-zinc-600 font-sans">{l}</span>
+          </div>
+        ))}
       </div>
     </div>
   );
